@@ -42,14 +42,34 @@ const app = express();
 // })
 const {adminAuthCheck, userAuthCheck}=require('./middleware/auth')
 app.use('/admin',adminAuthCheck)
+app.use('/',(err,req,res,next)=>{
+    if(err)
+    {
+        res.status(500).send("Something went wrong");
+    }
+ 
+ })
 
 app.get('/admin/getallusers', (req,res)=>{
     res.send("All user data has been sent")
 })
 
+app.delete('/admin/deleteUser', (req,res)=>{
+    res.send("User has been deleted")
+})
+
 app.get('/user',userAuthCheck,(req,res)=>{
+   throw new Error("Something went wrong");
     res.send("User Data has been sent");
 })
+app.use('/',(err,req,res,next)=>{
+    if(err)
+    {
+        res.status(500).send("Something went wrong");
+    }
+ 
+ })
+
 
 app.listen(3000,()=>{
     console.log('Listening on port 3000');
