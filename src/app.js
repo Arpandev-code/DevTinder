@@ -70,6 +70,23 @@ const app = express();
  
 //  })
 const connection= require('./config/database')
+const User=require('./models/user')
+app.post('/signup',async(req,res)=>{
+    let user =new User({
+        firstName: "Arun",
+        lastName: "Bhattacharya",
+        emailID: "arun@devtinder.com",
+        password: "Arun",
+        age: 22,
+        gender: "male"
+    })
+try {
+    await user.save();
+    res.status(201).send({message: "User created successfully"})
+} catch (error) {
+    res.status(400).send({Error: "Something went wrong"})
+}
+})
 
 connection()
 .then(()=>{
