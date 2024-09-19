@@ -84,6 +84,30 @@ try {
 }
 })
 
+//get user by email
+app.get('/user',async(req,res)=>{
+    const email= req.body.emailID
+    try {
+        const user =await User.find({emailID:email})
+        if(user.length>0)
+        {
+            res.status(201).send(user)
+        }
+        res.status(404).send({message: "User not found"})
+    } catch (error) {
+        res.status(400).send({Error: "Something went wrong"})
+    }
+})
+//Get All user in Feed
+app.get('/feed',async(req,res)=>{
+    try {
+        const users=await User.find()
+        res.status(201).send(users)
+    } catch (error) {
+        res.status(404).send("Something went wrong")
+    }
+})
+
 connection()
 .then(()=>{
     console.log('Database Connected');
