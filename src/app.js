@@ -107,6 +107,16 @@ app.get('/feed',async(req,res)=>{
         res.status(404).send("Something went wrong")
     }
 })
+//findById
+app.get('/user/:id', async(req,res)=>{
+    const id= req.params.id
+    try {
+        const user=await User.findById(id)
+        res.status(201).send(user)
+    } catch (error) {
+        res.status(500).send({Error: "Something went wrong"})
+    }
+})
 
 connection()
 .then(()=>{
