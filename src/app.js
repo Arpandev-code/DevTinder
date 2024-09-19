@@ -117,6 +117,43 @@ app.get('/user/:id', async(req,res)=>{
         res.status(500).send({Error: "Something went wrong"})
     }
 })
+//Delete a user
+app.delete('/user',async (req,res)=>{
+    const id= req.body.userID
+    try {
+        await User.findByIdAndDelete({_id:id})
+        res.status(201).send({message: "User deleted successfully"})
+        
+    } catch (error) {
+        res.status(500).send({Error: "Something went wrong"})
+    }
+})
+//Update a user by ID
+app.patch('/user',async(req,res)=>{
+    const id =req.body.userID
+    const data =req.body
+    try {
+        const user=await User.findByIdAndUpdate({_id:id},data,{
+            returnDocument:"after"
+        })
+        res.status(201).send({message: "User updated successfully",data:user})
+    } catch (error) {
+        res.status(500).send({Error: "Something went wrong"})
+    }
+})
+//Update a user by email id
+app.patch('/user/email',async(req,res)=>{
+    const email =req.body.emailID
+    const data =req.body
+   try {
+    const user= await User.findOneAndUpdate({emailID:email},data,{
+        returnDocument:"after"
+    })
+    res.status(201).send({message: "User updated successfully",data:user})
+   } catch (error) {
+    res.status(500).send({Error: "Something went wrong"})
+   }
+})
 
 connection()
 .then(()=>{
