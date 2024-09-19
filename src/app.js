@@ -69,17 +69,13 @@ const app = express();
 //     }
  
 //  })
+//express.json()  converts json data to javascript object returned by req.body
+app.use(express.json())
 const connection= require('./config/database')
 const User=require('./models/user')
 app.post('/signup',async(req,res)=>{
-    let user =new User({
-        firstName: "Arun",
-        lastName: "Bhattacharya",
-        emailID: "arun@devtinder.com",
-        password: "Arun",
-        age: 22,
-        gender: "male"
-    })
+    //Creating new instance of user model
+    let user =new User(req.body)
 try {
     await user.save();
     res.status(201).send({message: "User created successfully"})
