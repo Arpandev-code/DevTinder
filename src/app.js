@@ -73,14 +73,31 @@ const app = express();
 app.use(express.json())
 const connection= require('./config/database')
 const User=require('./models/user')
-app.post('/signup',async(req,res)=>{
-    //Creating new instance of user model
-    let user =new User(req.body)
+app.post('/signup',async(req,res)=>{ 
 try {
+    let data=req.body
+    let ALLOWED_FIELDS_FOR_CREATE = ["firstName", "lastName", "emailID", "password", "age", "gender", "photoUrl", "about", "skills"];
+    let isValidOperation=Object.keys(data).every((key)=>ALLOWED_FIELDS_FOR_CREATE.includes(key))
+        if( !isValidOperation)
+        {
+            return res.status(400).send({Error: "Invalid Operation"})
+        }
+        if (!data.firstName || !data.lastName || !data.emailID || !data.password) {
+            return res.status(400).send({ Error: "Missing required fields" });
+        }
+
+
+        if(data.skills?.length>10)
+        {
+            return res.status(400).send({Error: "Maximum 10 skills allowed"})
+        }
+    //Creating new instance of user model
+    let user =new User(data)
+    
     await user.save();
     res.status(201).send({message: "User created successfully"})
 } catch (error) {
-    res.status(400).send({Error: "Something went wrong"})
+    res.status(400).send({Error: "Something went wrong"+error.message})
 }
 })
 
@@ -129,10 +146,20 @@ app.delete('/user',async (req,res)=>{
     }
 })
 //Update a user by ID
-app.patch('/user',async(req,res)=>{
-    const id =req.body.userID
+app.patch('/user/:userID',async(req,res)=>{
+    const id =req.params?.userID
     const data =req.body
     try {
+        const ALLOWED_FIELDS_FOR_UPDATE=["password","age","gender","photoUrl","about","skills"]
+        const isValidOperation= Object.keys(data).every((key)=>ALLOWED_FIELDS_FOR_UPDATE.includes(key))
+        if(!isValidOperation)
+        {
+            return res.status(400).send({Error: "Invalid Operation"})
+        }
+        if(data.skills.length>10)
+        {
+            return res.status(400).send({Error: "Maximum 10 skills allowed"})
+        }
         const user=await User.findByIdAndUpdate({_id:id},data,{
             returnDocument:"after",
             runValidators:true
