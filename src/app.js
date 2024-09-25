@@ -1,5 +1,7 @@
 const express= require('express');
 const app = express();
+const cookieParser= require('cookie-parser');
+const jwt= require('jsonwebtoken');
 
 
 // app.get('/user/:id/:name', (req,res)=>{
@@ -71,28 +73,27 @@ const app = express();
 //  })
 //express.json()  converts json data to javascript object returned by req.body
 app.use(express.json())
+app.use(cookieParser())
+
 const connection= require('./config/database')
 const User=require('./models/user')
+const {signupValidation,updateValidation}=require('./utils/validation')
+const bcrypt=require('bcrypt')
+
 app.post('/signup',async(req,res)=>{ 
 try {
-    let data=req.body
-    let ALLOWED_FIELDS_FOR_CREATE = ["firstName", "lastName", "emailID", "password", "age", "gender", "photoUrl", "about", "skills"];
-    let isValidOperation=Object.keys(data).every((key)=>ALLOWED_FIELDS_FOR_CREATE.includes(key))
-        if( !isValidOperation)
-        {
-            return res.status(400).send({Error: "Invalid Operation"})
-        }
-        if (!data.firstName || !data.lastName || !data.emailID || !data.password) {
-            return res.status(400).send({ Error: "Missing required fields" });
-        }
-
-
-        if(data.skills?.length>10)
-        {
-            return res.status(400).send({Error: "Maximum 10 skills allowed"})
-        }
+    const {firstName,lastName,emailID,password,age,gender,photoUrl,about,skills}=req.body
+    //Validation of user Data
+    signupValidation(req)
+    //Hashing the password
+    const hashedPassoword= await bcrypt.hash(password,10)
     //Creating new instance of user model
-    let user =new User(data)
+    let user =new User({
+        firstName,
+        lastName,
+        emailID,
+        password:hashedPassoword,
+    })
     
     await user.save();
     res.status(201).send({message: "User created successfully"})
@@ -112,7 +113,7 @@ app.get('/user',async(req,res)=>{
         }
         res.status(404).send({message: "User not found"})
     } catch (error) {
-        res.status(400).send({Error: "Something went wrong"})
+        res.status(500).send({Error: `ERROR: ${error.message}`})
     }
 })
 //Get All user in Feed
@@ -131,7 +132,7 @@ app.get('/user/:id', async(req,res)=>{
         const user=await User.findById(id)
         res.status(201).send(user)
     } catch (error) {
-        res.status(500).send({Error: "Something went wrong"})
+        res.status(500).send({Error: `ERROR: ${error.message}`})
     }
 })
 //Delete a user
@@ -149,38 +150,86 @@ app.delete('/user',async (req,res)=>{
 app.patch('/user/:userID',async(req,res)=>{
     const id =req.params?.userID
     const data =req.body
+    console.log(req.body);
+    
     try {
-        const ALLOWED_FIELDS_FOR_UPDATE=["password","age","gender","photoUrl","about","skills"]
-        const isValidOperation= Object.keys(data).every((key)=>ALLOWED_FIELDS_FOR_UPDATE.includes(key))
-        if(!isValidOperation)
-        {
-            return res.status(400).send({Error: "Invalid Operation"})
-        }
-        if(data.skills.length>10)
-        {
-            return res.status(400).send({Error: "Maximum 10 skills allowed"})
-        }
+        //validation
+        updateValidation(req)
         const user=await User.findByIdAndUpdate({_id:id},data,{
             returnDocument:"after",
             runValidators:true
         },)
         res.status(201).send({message: "User updated successfully",data:user})
     } catch (error) {
-        res.status(500).send({Error: "Something went wrong"})
+        res.status(500).send({Error: `ERROR: ${error.message}`})
     }
 })
 //Update a user by email id
-app.patch('/user/email',async(req,res)=>{
-    const email =req.body.emailID
-    const data =req.body
+app.patch('/user/:email',async(req,res)=>{
+    const email =req.params.email
+    const {password,age,gender,photoUrl,about,skills} =req.body
    try {
-    const user= await User.findOneAndUpdate({emailID:email},data,{
+    //validation
+    updateValidation(req)
+    const user= await User.findOneAndUpdate({emailID:email},{
+        password,
+        age,
+        gender,
+        photoUrl,
+        about,
+        skills
+    },{
         returnDocument:"after"
     })
     res.status(201).send({message: "User updated successfully",data:user})
    } catch (error) {
-    res.status(500).send({Error: "Something went wrong"})
+    res.status(500).send({Error: `ERROR: ${error.message}`})
    }
+})
+
+app.post('/login',async (req,res)=>{
+    const {emailID,password}=req.body
+
+    try {
+        if(!emailID || !password)
+            {
+                throw new Error("Email and Password are required")
+            }
+        const user= await User.findOne({emailID : emailID})
+        if(!user)
+        {
+            throw new Error("Oops!Invalid Credentials")
+        }
+        const isMatch= await bcrypt.compare(password,user.password);
+        if(!isMatch){
+            throw new Error("Oops!Invalid Credentials")
+        }
+        if(isMatch)
+        {
+            const token=jwt.sign({id:user._id},"DEVKEY#$%7686")
+            res.cookie("token",token)
+        }
+        res.status(201).send({message: "Login Successful"})
+    } catch (error) {
+        res.status(401).send({Error: `${error.message}`})
+    }
+})
+app.get('/profile', async(req,res)=>{
+    const token = req.cookies?.token
+    console.log(token);
+    try {
+        if(!token)
+        {
+            throw new Error("Please login to acess your profile")
+        }
+        const decodedData=jwt.verify(token,"DEVKEY#$%7686")
+        const {id}=decodedData
+        const user=await User.findById(id)
+        res.status(201).send({message: "Profile Data fetched Sucessfully",data:user})
+    } catch (error) {
+        res.status(401).send({Error: `${error.message}`})
+    }
+    
 })
 
 connection()
