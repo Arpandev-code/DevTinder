@@ -79,6 +79,7 @@ const connection= require('./config/database')
 const User=require('./models/user')
 const {signupValidation,updateValidation}=require('./utils/validation')
 const bcrypt=require('bcrypt')
+const {userAuthCheck}=require('./middleware/auth');
 
 app.post('/signup',async(req,res)=>{ 
 try {
@@ -200,13 +201,13 @@ app.post('/login',async (req,res)=>{
         {
             throw new Error("Oops!Invalid Credentials")
         }
-        const isMatch= await bcrypt.compare(password,user.password);
+        const isMatch= await user.validatePassword(password)
         if(!isMatch){
             throw new Error("Oops!Invalid Credentials")
         }
         if(isMatch)
         {
-            const token=jwt.sign({id:user._id},"DEVKEY#$%7686")
+            const token=await user.getJWT();
             res.cookie("token",token)
         }
         res.status(201).send({message: "Login Successful"})
@@ -214,17 +215,9 @@ app.post('/login',async (req,res)=>{
         res.status(401).send({Error: `${error.message}`})
     }
 })
-app.get('/profile', async(req,res)=>{
-    const token = req.cookies?.token
-    console.log(token);
+app.get('/profile',userAuthCheck, async(req,res)=>{
     try {
-        if(!token)
-        {
-            throw new Error("Please login to acess your profile")
-        }
-        const decodedData=jwt.verify(token,"DEVKEY#$%7686")
-        const {id}=decodedData
-        const user=await User.findById(id)
+        const user=  req.user;
         res.status(201).send({message: "Profile Data fetched Sucessfully",data:user})
     } catch (error) {
         res.status(401).send({Error: `${error.message}`})
