@@ -6,7 +6,7 @@ const {signupValidation}=require('../utils/validation')
 
 authRouter.post('/signup',async(req,res)=>{ 
     try {
-        const {firstName,lastName,emailID,password,age,gender,photoUrl,about,skills}=req.body
+        const {firstName,lastName,emailID,password}=req.body
         //Validation of user Data
         signupValidation(req)
         //Hashing the password
@@ -55,5 +55,12 @@ authRouter.post('/login',async (req,res)=>{
     }
 }
 )
+
+authRouter.post("/logout",async(req,res)=>{
+    res.cookie("token",null,{
+        expires:new Date(Date.now()),})
+    res.send("Logout Successful")
+})
+
 module.exports=authRouter
 

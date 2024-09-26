@@ -41,7 +41,16 @@ const updateValidation=(req)=>{
         throw new Error("Invalid URL")
     }
 }
+
+const validateEditProfileData=(req)=>{
+    let data=req.body
+    const allowedFieldtoEditUser=["firstName","lastName","","emailID","age","gender","photoUrl","about","skills"]
+    const isAllowedToEdit =Object.keys(data).every((key)=>allowedFieldtoEditUser.includes(key))
+
+    return isAllowedToEdit;
+}
 module.exports={
     signupValidation,
-    updateValidation
+    updateValidation,
+    validateEditProfileData
 }
